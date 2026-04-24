@@ -25,7 +25,36 @@ class EnvironmentSettingsController extends BaseController
      */
     public function index(Request|null $request, ?string $type = null): View
     {
-        return view('admin-views.system-setup.environment-index');
+        $connection = config('database.default', 'mysql');
+        $envData = [
+            'envAppName'      => config('app.name'),
+            'envAppDebug'     => config('app.debug'),
+            'envAppMode'      => $this->getEnvFileValue('APP_MODE'),
+            'envAppUrl'       => config('app.url'),
+            'envDbConnection' => $connection,
+            'envDbHost'       => config("database.connections.{$connection}.host"),
+            'envDbPort'       => config("database.connections.{$connection}.port"),
+            'envDbDatabase'   => config("database.connections.{$connection}.database"),
+            'envDbUsername'   => config("database.connections.{$connection}.username"),
+            'envDbPassword'   => config("database.connections.{$connection}.password"),
+            'envBuyerUsername'=> $this->getEnvFileValue('BUYER_USERNAME'),
+            'envPurchaseCode' => $this->getEnvFileValue('PURCHASE_CODE'),
+            'envForceHttps'   => $this->getEnvFileValue('FORCE_HTTPS'),
+        ];
+        return view('admin-views.system-setup.environment-index', $envData);
+    }
+
+    private function getEnvFileValue(string $key): ?string
+    {
+        $path = base_path('.env');
+        if (!file_exists($path)) {
+            return null;
+        }
+        $content = file_get_contents($path);
+        if (preg_match('/^' . preg_quote($key, '/') . '=(.*)$/m', $content, $matches)) {
+            return trim($matches[1], " \t\n\r\0\x0B\"'");
+        }
+        return null;
     }
 
     public function update(Request $request): RedirectResponse
