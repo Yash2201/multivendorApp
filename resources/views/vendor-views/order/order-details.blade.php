@@ -1007,12 +1007,16 @@
                                                 </div>
                                             </div>
                                         </li>
-                                    @endif
                                 @endif
                             </ul>
                         @endif
+                        @endif
                     </div>
                 </div>
+                
+                @if($shippingMethod == 'sellerwise_shipping' && $order->delivery_type == 'third_party_delivery' && config('shiprocket.email'))
+                    @include('vendor-views.shiprocket.partials.create-shipment-form', ['order' => $order])
+                @endif
                 <div class="card">
                     @if(!empty((array) $shippingAddress))
                         <div class="card-body">

@@ -56,6 +56,7 @@ class RouteServiceProvider extends ServiceProvider
         $this->mapBetaAdminRoutes();
         $this->mapBetaVendorRoutes();
         $this->mapBetaWebRoutes();
+        $this->mapWebhookRoutes();
     }
 
     /**
@@ -136,6 +137,18 @@ class RouteServiceProvider extends ServiceProvider
         Route::middleware(['web', 'logUserBrowsingNavigation'])
             ->namespace($this->namespace)
             ->group(base_path('routes/web/routes.php'));
+    }
+
+    protected function mapWebhookRoutes(): void
+    {
+        Route::prefix('api')
+            ->middleware('api')
+            ->namespace($this->namespace)
+            ->group(function () {
+                // Shiprocket does not allow 'shiprocket' or 'sr' in the webhook URL
+                Route::post('logistics/webhook', 'ShiprocketWebhookController@handle')
+                    ->name('shiprocket.webhook');
+            });
     }
 
     /**

@@ -99,6 +99,13 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
+
+        'shiprocket' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shiprocket.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
     ],
 
 ];
