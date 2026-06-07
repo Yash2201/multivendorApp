@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\ShiprocketPickupAddress;
 use App\Models\ShiprocketShipment;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -389,6 +390,94 @@ class ShiprocketService
     public function addPickupLocation(array $locationData): array
     {
         return $this->makeRequest('POST', '/settings/company/addpickup', $locationData);
+    }
+
+    /**
+     * Create a pickup address for a vendor (or admin/in-house when $sellerId is null).
+     *
+     * Registers the address on the shared Shiprocket account under a unique,
+     * owner-namespaced nickname, then persists it locally scoped to the owner.
+     * The stored nickname is what later flows into createFullShipment() as the
+     * Shiprocket `pickup_location`.
+     *
+     * @param array    $data      Validated pickup address fields (name, email, phone, address, ...)
+     * @param int|null $sellerId  Owner seller id; null = admin/in-house
+     * @return ShiprocketPickupAddress
+     * @throws \Exception
+     */
+    public function createPickupAddress(array $data, ?int $sellerId = null): ShiprocketPickupAddress
+    {
+        $nickname = $this->generatePickupNickname($sellerId);
+
+        $payload = [
+            'pickup_location' => $nickname,
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'address' => $data['address'],
+            'address_2' => $data['address_2'] ?? '',
+            'city' => $data['city'],
+            'state' => $data['state'],
+            'country' => $data['country'] ?? 'India',
+            'pin_code' => $data['pin_code'],
+        ];
+
+        $response = $this->addPickupLocation($payload);
+
+        // Shiprocket can return success=false with HTTP 200 for some validation
+        // errors, in which case makeRequest() would not have thrown — guard here so
+        // we never store a nickname that does not actually exist on their side.
+        if (isset($response['success']) && $response['success'] === false) {
+            throw new \Exception($response['message'] ?? 'Shiprocket rejected the pickup address');
+        }
+
+        $isFirst = !ShiprocketPickupAddress::query()->forSeller($sellerId)->exists();
+
+        $address = ShiprocketPickupAddress::create([
+            'seller_id' => $sellerId,
+            'pickup_nickname' => $nickname,
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'address' => $data['address'],
+            'address_2' => $data['address_2'] ?? null,
+            'city' => $data['city'],
+            'state' => $data['state'],
+            'country' => $data['country'] ?? 'India',
+            'pin_code' => $data['pin_code'],
+            'is_default' => $isFirst,
+            'is_synced' => true,
+            'raw_response' => $response,
+        ]);
+
+        Log::channel('shiprocket')->info('Pickup address registered', [
+            'seller_id' => $sellerId,
+            'pickup_nickname' => $nickname,
+            'pickup_address_id' => $address->id,
+        ]);
+
+        return $address;
+    }
+
+    /**
+     * Generate a unique, owner-namespaced Shiprocket pickup nickname.
+     *
+     * Shiprocket caps `pickup_location` at 36 chars and requires it unique within
+     * the account; namespacing by owner (v{sellerId}_ / inhouse_) keeps vendors
+     * from colliding on the shared account.
+     *
+     * @param int|null $sellerId
+     * @return string
+     */
+    private function generatePickupNickname(?int $sellerId): string
+    {
+        $prefix = $sellerId ? 'v' . $sellerId : 'inhouse';
+
+        do {
+            $nickname = $prefix . '_' . strtoupper(bin2hex(random_bytes(4)));
+        } while (ShiprocketPickupAddress::where('pickup_nickname', $nickname)->exists());
+
+        return $nickname;
     }
 
     // -------------------------------------------------------------------------
@@ -1009,6 +1098,54 @@ class ShiprocketService
         }
     }
 
+    /**
+     * Turn a failed Shiprocket response into a single human-readable sentence.
+     *
+     * Shiprocket returns errors in a few shapes:
+     *   - { "message": "..." }
+     *   - { "errors": { "field": ["msg", ...] } }
+     *   - { "field": ["msg", ...] }            (e.g. /addpickup validation)
+     * This flattens any of them so the UI shows the actual reason instead of raw JSON.
+     *
+     * @param \Illuminate\Http\Client\Response $response
+     * @return string
+     */
+    private function extractApiErrorMessage($response): string
+    {
+        $body = $response->json();
+
+        if (is_array($body)) {
+            if (!empty($body['message']) && is_string($body['message'])) {
+                return $body['message'];
+            }
+
+            // Unwrap a Laravel-style "errors" envelope if present.
+            if (!empty($body['errors']) && is_array($body['errors'])) {
+                $body = $body['errors'];
+            }
+
+            $messages = [];
+            foreach ($body as $value) {
+                if (is_array($value)) {
+                    foreach ($value as $line) {
+                        if (is_string($line) && trim($line) !== '') {
+                            $messages[] = trim($line);
+                        }
+                    }
+                } elseif (is_string($value) && trim($value) !== '') {
+                    $messages[] = trim($value);
+                }
+            }
+
+            if (!empty($messages)) {
+                return implode(' ', array_unique($messages));
+            }
+        }
+
+        $raw = trim((string) $response->body());
+        return $raw !== '' ? $raw : 'Request failed';
+    }
+
     private function makeRequest(string $method, string $endpoint, ?array $body = null, ?array $queryParams = null): array
     {
         $token = $this->getToken();
@@ -1050,18 +1187,19 @@ class ShiprocketService
             }
 
             if ($response->failed()) {
-                $errorBody = $response->json();
-                $errorMessage = $errorBody['message'] ?? $response->body();
+                $errorMessage = $this->extractApiErrorMessage($response);
 
                 Log::channel('shiprocket')->error('API request failed', [
                     'method' => $method,
                     'endpoint' => $endpoint,
                     'status' => $response->status(),
                     'error' => $errorMessage,
+                    'body' => $response->body(),
                     'attempt' => $attempt,
                 ]);
 
-                throw new \Exception("Shiprocket API error [{$response->status()}] on {$method} {$endpoint}: {$errorMessage}");
+                // Clean, human-readable message for the UI toast; full context stays in the log.
+                throw new \Exception("Shiprocket [{$response->status()}]: {$errorMessage}");
             }
 
             return $response->json() ?? [];

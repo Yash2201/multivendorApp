@@ -1040,6 +1040,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin', '
             Route::group(['prefix' => 'shiprocket', 'as' => 'shiprocket.'], function () {
                 Route::controller(\App\Http\Controllers\Admin\Shipping\ShiprocketController::class)->group(function () {
                     Route::get('/', 'index')->name('index');
+                    Route::get('/pickup-addresses', 'pickupAddressesView')->name('pickup-addresses');
+                    Route::get('/pickup-addresses/list', 'pickupAddresses')->name('pickup-addresses.list');
+                    Route::post('/pickup-addresses', 'storePickupAddress')->name('pickup-addresses.store');
+                    Route::post('/pickup-addresses/default', 'setDefaultPickupAddress')->name('pickup-addresses.default');
+                    Route::delete('/pickup-addresses/{id}', 'deletePickupAddress')->name('pickup-addresses.delete');
                     Route::get('/details/{id}', 'details')->name('details');
                     Route::post('/create-shipment', 'createShipment')->name('create-shipment');
                     Route::post('/generate-awb', 'generateAwb')->name('generate-awb');

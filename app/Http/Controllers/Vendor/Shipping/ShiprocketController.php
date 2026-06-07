@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Vendor\Shipping;
 
 use App\Http\Controllers\BaseController;
+use App\Http\Requests\Shiprocket\PickupAddressRequest;
 use App\Models\Order;
+use App\Models\Seller;
+use App\Models\ShiprocketPickupAddress;
 use App\Models\ShiprocketShipment;
 use App\Services\ShiprocketService;
 use Devrabiul\ToastMagic\Facades\ToastMagic;
@@ -302,5 +305,143 @@ class ShiprocketController extends BaseController
         } catch (\Exception $e) {
             return response()->json(['status' => 0, 'message' => $e->getMessage()]);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Pickup Addresses (vendor-scoped)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Standalone management page: this vendor's pickup addresses.
+     *
+     * @return View
+     */
+    public function pickupAddressesView(): View
+    {
+        $sellerId = auth('seller')->id();
+
+        $addresses = ShiprocketPickupAddress::forSeller($sellerId)
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->paginate(getWebConfig(name: 'pagination_limit'));
+
+        $prefill = $this->pickupPrefill($sellerId);
+
+        return view('vendor-views.shiprocket.pickup-addresses', compact('addresses', 'prefill'));
+    }
+
+    /**
+     * List this vendor's saved pickup addresses (JSON, for the shipment picker).
+     *
+     * @return JsonResponse
+     */
+    public function pickupAddresses(): JsonResponse
+    {
+        $sellerId = auth('seller')->id();
+
+        $addresses = ShiprocketPickupAddress::forSeller($sellerId)
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'status' => 1,
+            'addresses' => $addresses,
+            'prefill' => $this->pickupPrefill($sellerId),
+        ]);
+    }
+
+    /**
+     * Add a pickup address scoped to the authenticated vendor.
+     *
+     * @param PickupAddressRequest $request
+     * @return JsonResponse
+     */
+    public function storePickupAddress(PickupAddressRequest $request): JsonResponse
+    {
+        $sellerId = auth('seller')->id();
+
+        try {
+            $address = $this->shiprocketService->createPickupAddress($request->validated(), $sellerId);
+
+            return response()->json([
+                'status' => 1,
+                'message' => translate('pickup_address_added_successfully'),
+                'address' => $address,
+            ]);
+        } catch (\Exception $e) {
+            Log::channel('shiprocket')->error('Pickup address creation failed', [
+                'seller_id' => $sellerId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['status' => 0, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Mark one of this vendor's pickup addresses as default.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function setDefaultPickupAddress(Request $request): JsonResponse
+    {
+        $request->validate(['id' => 'required|integer']);
+
+        $sellerId = auth('seller')->id();
+        $address = ShiprocketPickupAddress::forSeller($sellerId)->find($request->id);
+
+        if (!$address) {
+            return response()->json(['status' => 0, 'message' => translate('pickup_address_not_found')]);
+        }
+
+        $address->makeDefault();
+
+        return response()->json(['status' => 1, 'message' => translate('default_pickup_address_updated')]);
+    }
+
+    /**
+     * Delete one of this vendor's pickup addresses.
+     *
+     * @param string|int $id
+     * @return JsonResponse
+     */
+    public function deletePickupAddress(string|int $id): JsonResponse
+    {
+        $sellerId = auth('seller')->id();
+        $address = ShiprocketPickupAddress::forSeller($sellerId)->find($id);
+
+        if (!$address) {
+            return response()->json(['status' => 0, 'message' => translate('pickup_address_not_found')]);
+        }
+
+        $wasDefault = $address->is_default;
+        $address->delete();
+
+        // Promote another address to default so a vendor always has one selected.
+        if ($wasDefault) {
+            ShiprocketPickupAddress::forSeller($sellerId)->orderByDesc('id')->first()?->makeDefault();
+        }
+
+        return response()->json(['status' => 1, 'message' => translate('pickup_address_deleted')]);
+    }
+
+    /**
+     * Prefill values for the add-address form, derived from the vendor's shop.
+     *
+     * @param int|null $sellerId
+     * @return array
+     */
+    private function pickupPrefill(?int $sellerId): array
+    {
+        $seller = $sellerId ? Seller::with('shop')->find($sellerId) : null;
+
+        return [
+            'name' => $seller ? trim($seller->f_name . ' ' . $seller->l_name) : '',
+            'email' => $seller->email ?? '',
+            'phone' => $seller->phone ?? '',
+            'address' => $seller?->shop?->address ?? '',
+            'country' => 'India',
+        ];
     }
 }
