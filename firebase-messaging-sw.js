@@ -3,7 +3,7 @@ importScripts('https://www.gstatic.com/firebasejs/8.3.2/firebase-messaging.js');
 importScripts('https://www.gstatic.com/firebasejs/8.3.2/firebase-auth.js');
 
 firebase.initializeApp({
-    apiKey: "YOUR_FIREBASE_API_KEY",
+    apiKey: "AIzaSyCFGqSEiWMItei_AFIUgdM53PWrvyGmjFY",
     authDomain: "",
     projectId: "drivevalley-fdb7f",
     storageBucket: "",

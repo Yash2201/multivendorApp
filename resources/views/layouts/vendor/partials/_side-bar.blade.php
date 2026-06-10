@@ -459,6 +459,17 @@
                                 </a>
                             </li>
                         @endif
+                        @if(config('shiprocket.email'))
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('vendor/business-settings/shiprocket/pickup-addresses*')?'active' : ''}}">
+                                <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                   href="{{ route('vendor.business-settings.shiprocket.pickup-addresses') }}" title="{{ translate('pickup_addresses') }}">
+                                    <i class="tio-poi-outlined nav-icon"></i>
+                                    <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize">
+                                        {{ translate('pickup_addresses') }}
+                                    </span>
+                                </a>
+                            </li>
+                        @endif
                         <li class="navbar-vertical-aside-has-menu {{ Request::is('vendor/business-settings/withdraw*')?'active' : ''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link"
                                href="{{ route('vendor.business-settings.withdraw.index') }}" title="{{ translate('withdraws') }}">

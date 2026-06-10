@@ -840,19 +840,10 @@
                                 <option
                                     value="processing" {{$order->order_status == 'processing'?'selected':''}} >{{translate('packaging')}} </option>
 
+                                {{-- Vendor only manages the order up to packaging. Later delivery statuses
+                                     (out for delivery, delivered, returned, failed, canceled) come from the
+                                     courier (e.g. Shiprocket sync) or the admin, so they are not offered here. --}}
                                 @php($shippingMethod = getWebConfig(name: 'shipping_method'))
-                                @if($shippingMethod == 'sellerwise_shipping')
-                                    <option
-                                        value="out_for_delivery" {{$order->order_status == 'out_for_delivery'?'selected':''}} >{{translate('out_for_delivery')}} </option>
-                                    <option
-                                        value="delivered" {{$order->order_status == 'delivered'? 'selected':''}} >{{translate('delivered')}} </option>
-                                    <option
-                                        value="returned" {{$order->order_status == 'returned'?'selected':''}} > {{translate('returned')}}</option>
-                                    <option
-                                        value="failed" {{$order->order_status == 'failed'?'selected':''}} >{{translate('failed_to_deliver')}} </option>
-                                    <option
-                                        value="canceled" {{$order->order_status == 'canceled'?'selected':''}} >{{translate('canceled')}} </option>
-                                @endif
                             </select>
                         </div>
                         <div
@@ -1007,12 +998,22 @@
                                                 </div>
                                             </div>
                                         </li>
-                                    @endif
                                 @endif
                             </ul>
                         @endif
+                        @endif
                     </div>
                 </div>
+                
+                {{-- Shiprocket shipping is available to the vendor in both shipping modes:
+                     under in-house there is no delivery-type selector, so show it whenever
+                     Shiprocket is configured; under sellerwise keep the existing flow where
+                     the vendor first chooses "third party delivery". --}}
+                @if(config('shiprocket.email') && ($shippingMethod != 'sellerwise_shipping' || $order->delivery_type == 'third_party_delivery'))
+                    <div id="shiprocket_shipping_section">
+                        @include('vendor-views.shiprocket.partials.create-shipment-form', ['order' => $order])
+                    </div>
+                @endif
                 <div class="card">
                     @if(!empty((array) $shippingAddress))
                         <div class="card-body">

@@ -1076,6 +1076,19 @@
                     </a>
                 </li>
 
+                @if(config('shiprocket.email'))
+                    <li>
+                        <a class="nav-link {{ Request::is('admin/business-settings/shiprocket/pickup-addresses*') ? 'active' : '' }}"
+                           href="{{ route('admin.business-settings.shiprocket.pickup-addresses') }}"
+                           title="{{ translate('Shiprocket_Pickup_Addresses') }}">
+                            <i class="fi fi-sr-marker"></i>
+                            <span class="aside-mini-hidden-element text-truncate flex-grow-1">
+                                {{ translate('Shiprocket_Pickup_Addresses') }}
+                            </span>
+                        </a>
+                    </li>
+                @endif
+
                 <li>
                     <a class="nav-link {{
                             (Request::is('admin/seo-settings/web-master-tool') ||

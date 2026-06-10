@@ -340,6 +340,27 @@ Route::group(['middleware' => ['maintenance_mode', 'actch:admin_panel']], functi
                     Route::post('index', [CategoryShippingCostController::class, 'index'])->name('index');
                 });
 
+                // Shiprocket Routes
+                Route::group(['prefix' => 'shiprocket', 'as' => 'shiprocket.'], function () {
+                    Route::controller(\App\Http\Controllers\Vendor\Shipping\ShiprocketController::class)->group(function () {
+                        Route::get('/', 'index')->name('index');
+                        Route::get('/pickup-addresses', 'pickupAddressesView')->name('pickup-addresses');
+                        Route::get('/pickup-addresses/list', 'pickupAddresses')->name('pickup-addresses.list');
+                        Route::post('/pickup-addresses', 'storePickupAddress')->name('pickup-addresses.store');
+                        Route::post('/pickup-addresses/default', 'setDefaultPickupAddress')->name('pickup-addresses.default');
+                        Route::delete('/pickup-addresses/{id}', 'deletePickupAddress')->name('pickup-addresses.delete');
+                        Route::get('/details/{id}', 'details')->name('details');
+                        Route::post('/create-shipment', 'createShipment')->name('create-shipment');
+                        Route::post('/generate-awb', 'generateAwb')->name('generate-awb');
+                        Route::post('/request-pickup', 'requestPickup')->name('request-pickup');
+                        Route::post('/generate-manifest', 'generateManifest')->name('generate-manifest');
+                        Route::post('/generate-label', 'generateLabel')->name('generate-label');
+                        Route::post('/generate-invoice', 'generateInvoice')->name('generate-invoice');
+                        Route::post('/cancel-shipment', 'cancelShipment')->name('cancel-shipment');
+                        Route::get('/tracking/{awb}', 'tracking')->name('tracking');
+                    });
+                });
+
                 Route::group(['prefix' => 'withdraw', 'as' => 'withdraw.'], function () {
                     Route::controller(WithdrawController::class)->group(function () {
                         Route::get('index', 'index')->name('index');

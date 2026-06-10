@@ -131,9 +131,6 @@
         "platform": {
             "php": "8.2.0"
         },
-        "audit": {
-            "ignore": ["PKSA-wc55-9qj2-7v4h"]
-        },
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,

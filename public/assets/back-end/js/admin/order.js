@@ -109,12 +109,15 @@ $(document).ready(function () {
     if (delivery_type === 'self_delivery') {
         $('.choose_delivery_man').show();
         $('#by_third_party_delivery_service_info').hide();
+        $('#shiprocket_shipping_section').hide();
     } else if (delivery_type === 'third_party_delivery') {
         $('.choose_delivery_man').hide();
         $('#by_third_party_delivery_service_info').show();
+        $('#shiprocket_shipping_section').show();
     } else {
         $('.choose_delivery_man').hide();
         $('#by_third_party_delivery_service_info').hide();
+        $('#shiprocket_shipping_section').hide();
     }
 });
 
@@ -215,13 +218,16 @@ $("#choose_delivery_type").on('change', function () {
     if (value === 'self_delivery') {
         $('.choose_delivery_man').show();
         $('#by_third_party_delivery_service_info').hide();
+        $('#shiprocket_shipping_section').hide();
     } else if (value === 'third_party_delivery') {
         $('.choose_delivery_man').hide();
         $('#by_third_party_delivery_service_info').show();
+        $('#shiprocket_shipping_section').show();
         $('#third_party_delivery_service_modal').modal("show");
     } else {
         $('.choose_delivery_man').hide();
         $('#by_third_party_delivery_service_info').hide();
+        $('#shiprocket_shipping_section').hide();
     }
 
 });

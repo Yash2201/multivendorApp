@@ -9568,8 +9568,13 @@ body *::-webkit-scrollbar-thumb {
 }
 .footer-slide-item img {
     width: 36px !important;
-    margin: 0 auto 20px;
+    filter: brightness(0) invert(1) !important;
 }
+.footer-slide-item svg,
+.footer-slide-item .replaced-svg {
+    color: #fff !important;
+}
+
 .footer-slide-item small,
 .footer-slide-item .des {
     color: rgba(38, 45, 52, 0.8);

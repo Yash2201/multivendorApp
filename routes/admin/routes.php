@@ -99,6 +99,11 @@ use App\Http\Controllers\Admin\Settings\StorageConnectionSettingsController;
 use App\Http\Controllers\Admin\Settings\VendorRegistrationSettingController;
 use App\Http\Controllers\Admin\Notification\PushNotificationSettingsController;
 
+Route::get('/test-admin', function() {
+    return 'Admin routes are loading!';
+});
+
+
 
 Route::get('search', function () {
     return view('layouts.admin.partials._advance-search-result');
@@ -1028,6 +1033,27 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin', '
                     Route::delete('zip-code-delete', 'deleteZipCode')->name('zip-code-delete');
                     Route::post('country-restriction-status-change', 'countryRestrictionStatusChange')->name('country-restriction-status-change');
                     Route::post("zipcode-restriction-status-change", 'zipcodeRestrictionStatusChange')->name('zipcode-restriction-status-change');
+                });
+            });
+
+            // Shiprocket Routes
+            Route::group(['prefix' => 'shiprocket', 'as' => 'shiprocket.'], function () {
+                Route::controller(\App\Http\Controllers\Admin\Shipping\ShiprocketController::class)->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/pickup-addresses', 'pickupAddressesView')->name('pickup-addresses');
+                    Route::get('/pickup-addresses/list', 'pickupAddresses')->name('pickup-addresses.list');
+                    Route::post('/pickup-addresses', 'storePickupAddress')->name('pickup-addresses.store');
+                    Route::post('/pickup-addresses/default', 'setDefaultPickupAddress')->name('pickup-addresses.default');
+                    Route::delete('/pickup-addresses/{id}', 'deletePickupAddress')->name('pickup-addresses.delete');
+                    Route::get('/details/{id}', 'details')->name('details');
+                    Route::post('/create-shipment', 'createShipment')->name('create-shipment');
+                    Route::post('/generate-awb', 'generateAwb')->name('generate-awb');
+                    Route::post('/request-pickup', 'requestPickup')->name('request-pickup');
+                    Route::post('/generate-manifest', 'generateManifest')->name('generate-manifest');
+                    Route::post('/generate-label', 'generateLabel')->name('generate-label');
+                    Route::post('/generate-invoice', 'generateInvoice')->name('generate-invoice');
+                    Route::post('/cancel-shipment', 'cancelShipment')->name('cancel-shipment');
+                    Route::get('/tracking/{awb}', 'tracking')->name('tracking');
                 });
             });
 

@@ -298,6 +298,11 @@ class Order extends Model
             ->latest('id');
     }
 
+    public function shiprocketShipment(): HasOne
+    {
+        return $this->hasOne(ShiprocketShipment::class, 'order_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();

@@ -1111,6 +1111,13 @@
                         @endif
                     </div>
                 </div>
+                @php($shippingMethod = getWebConfig(name: 'shipping_method'))
+                @if($order->delivery_type == 'third_party_delivery' && config('shiprocket.email'))
+                    <div id="shiprocket_shipping_section">
+                        @include('vendor-views.shiprocket.partials.create-shipment-form', ['order' => $order])
+                    </div>
+                @endif
+                
                 @php($billing=$order['billing_address_data'])
 
                 <div class="card">

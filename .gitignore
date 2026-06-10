@@ -30,3 +30,9 @@ Thumbs.db
 !/storage/framework/sessions/.gitkeep
 /storage/framework/views/*
 !/storage/framework/views/.gitkeep
+
+
+.agents
+.claude
+CLAUDE.md
+skills-lock.json
